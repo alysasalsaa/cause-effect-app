@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CauseEffect</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0f172a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 { font-size: 1.75rem; font-weight: 700; }
+    header p  { font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 820px;
+    }
+
+    @media (max-width: 580px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* Summary pane */
+    .summary-pane {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .pane-header {
+      padding: 0.85rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      border-bottom: 1px solid #334155;
+      background: #273549;
+    }
+
+    .person-list { list-style: none; }
+
+    .person-item {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 1px solid #1e293b;
+      transition: background 0.12s, color 0.12s, padding-left 0.12s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #cbd5e1;
+    }
+
+    .person-item:last-child { border-bottom: none; }
+
+    /* Hover effect */
+    .person-item:hover {
+      background: #273549;
+      color: #f8fafc;
+      padding-left: 1.35rem;
+    }
+
+    /* Selected effect — different from hover */
+    .person-item.selected {
+      background: #312e81;
+      color: #a5b4fc;
+      border-left: 3px solid #6366f1;
+      padding-left: calc(1rem - 3px);
+      font-weight: 700;
+    }
+
+    .avatar-sm {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: #334155;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      color: #94a3b8;
+    }
+
+    .person-item.selected .avatar-sm {
+      background: #4338ca;
+      color: #c7d2fe;
+    }
+
+    /* Detail pane */
+    .detail-pane {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      overflow: hidden;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-pane .pane-header { background: #273549; }
+
+    .detail-body {
+      flex: 1;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* Empty state */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      color: #475569;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .empty-icon { font-size: 2.5rem; }
+    .empty-state p { font-size: 0.875rem; }
+
+    /* Detail card */
+    .detail-top {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .avatar-lg {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: #4338ca;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #c7d2fe;
+      flex-shrink: 0;
+    }
+
+    .detail-name { font-size: 1.2rem; font-weight: 700; }
+    .detail-birthday { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+
+    .detail-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+    }
+
+    @media (max-width: 480px) {
+      .detail-fields { grid-template-columns: 1fr; }
+    }
+
+    .field {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+    }
+
+    .field-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 0.3rem;
+    }
+
+    .field-value {
+      font-size: 0.875rem;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>CauseEffect</h1>
+    <p>Click a name to view their details</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- Summary pane -->
+    <div class="summary-pane">
+      <div class="pane-header">People</div>
+      <ul class="person-list" id="person-list"></ul>
+    </div>
+
+    <!-- Detail pane -->
+    <div class="detail-pane">
+      <div class="pane-header">Details</div>
+      <div class="detail-body" id="detail-body">
+        <div class="empty-state">
+          <div class="empty-icon">👤</div>
+          <p>Select a person from the list to view their details</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const people = [
+      { name: "Alysa Salsabila",  street: "Jl. Mawar No. 12",    city: "Bandung",    state: "West Java",    country: "Indonesia", telephone: "+62 812-3456-7890", birthday: "March 15, 2005" },
+      { name: "Rafi Pratama",     street: "Jl. Melati No. 7",    city: "Jakarta",    state: "DKI Jakarta",  country: "Indonesia", telephone: "+62 813-2345-6789", birthday: "July 22, 2004" },
+      { name: "Nadia Khairunnisa",street: "Jl. Anggrek No. 3",   city: "Yogyakarta", state: "DIY",          country: "Indonesia", telephone: "+62 857-6543-2100", birthday: "November 8, 2005" },
+      { name: "Farhan Rizaldi",   street: "Jl. Kenanga No. 19",  city: "Surabaya",   state: "East Java",    country: "Indonesia", telephone: "+62 878-9012-3456", birthday: "January 30, 2004" },
+      { name: "Siti Rahayu",      street: "Jl. Dahlia No. 5",    city: "Semarang",   state: "Central Java", country: "Indonesia", telephone: "+62 822-1111-2222", birthday: "April 5, 2006" },
+      { name: "Dimas Ardiansyah", street: "Jl. Flamboyan No. 8", city: "Medan",      state: "North Sumatra",country: "Indonesia", telephone: "+62 895-3333-4444", birthday: "September 18, 2003" },
+      { name: "Lestari Wulandari",street: "Jl. Bougenville No.2",city: "Makassar",   state: "South Sulawesi",country:"Indonesia", telephone: "+62 811-5555-6666", birthday: "February 27, 2005" },
+    ];
+
+    const listEl   = document.getElementById('person-list');
+    const detailEl = document.getElementById('detail-body');
+    let selectedIndex = null;
+
+    function initials(name) {
+      return name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    }
+
+    function renderList() {
+      listEl.innerHTML = '';
+      people.forEach((p, i) => {
+        const li = document.createElement('li');
+        li.className = 'person-item' + (i === selectedIndex ? ' selected' : '');
+        li.innerHTML = `
+          <div class="avatar-sm">${initials(p.name)}</div>
+          <span>${p.name}</span>
+        `;
+        li.addEventListener('click', () => selectPerson(i));
+        listEl.appendChild(li);
+      });
+    }
+
+    function selectPerson(index) {
+      selectedIndex = index;
+      renderList();
+      renderDetail(people[index]);
+    }
+
+    function renderDetail(p) {
+      detailEl.innerHTML = `
+        <div class="detail-top">
+          <div class="avatar-lg">${initials(p.name)}</div>
+          <div>
+            <div class="detail-name">${p.name}</div>
+            <div class="detail-birthday">🎂 ${p.birthday}</div>
+          </div>
+        </div>
+        <div class="detail-fields">
+          <div class="field full">
+            <div class="field-label">Full Name</div>
+            <div class="field-value">${p.name}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Street</div>
+            <div class="field-value">${p.street}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">City</div>
+            <div class="field-value">${p.city}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">State / Province</div>
+            <div class="field-value">${p.state}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Country</div>
+            <div class="field-value">${p.country}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Telephone</div>
+            <div class="field-value">${p.telephone}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Birthday</div>
+            <div class="field-value">${p.birthday}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    renderList();
+  </script>
+</body>
+</html>
